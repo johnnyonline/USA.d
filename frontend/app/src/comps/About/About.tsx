@@ -343,7 +343,7 @@ function ModalTitle() {
           <Logo size={40} />
         </a.div>
       </a.div>
-      <div>Liquity V2 App</div>
+      <div>Asymmetry Finance USA.d</div>
     </div>
   );
 }

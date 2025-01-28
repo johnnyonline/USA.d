@@ -196,17 +196,17 @@ export default {
         title: "Borrow",
         description: "Mint BOLD against your collateral at whatever interest rate you want",
       },
-      multiply: {
-        title: "Multiply",
-        description: "Increase your exposure to ETH and its staking yield with a single click",
-      },
+      // multiply: {
+      //   title: "Multiply",
+      //   description: "Increase your exposure to ETH and its staking yield with a single click",
+      // },
       earn: {
         title: "Earn with BOLD",
         description: "Deposit BOLD to earn protocol revenues and liquidation proceeds",
       },
       stake: {
-        title: "Stake LQTY",
-        description: "Direct protocol incentives with LQTY while earning from Liquity V1",
+        title: "Stake ASF",
+        description: "Direct protocol incentives with ASF while earning from Liquity V1",
       },
     },
     statsBar: {

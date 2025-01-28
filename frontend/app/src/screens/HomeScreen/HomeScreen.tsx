@@ -12,6 +12,7 @@ import { css } from "@/styled-system/css";
 import { AnchorTextButton, IconBorrow, IconEarn, TokenIcon } from "@liquity2/uikit";
 import * as dn from "dnum";
 import Link from "next/link";
+import { BottomCards } from "./BottomCards";
 import { HomeTable } from "./HomeTable";
 
 export function HomeScreen() {
@@ -63,6 +64,7 @@ export function HomeScreen() {
           ))}
         />
       </div>
+      <BottomCards />
     </div>
   );
 }

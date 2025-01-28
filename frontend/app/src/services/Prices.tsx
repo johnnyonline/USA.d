@@ -14,7 +14,7 @@ import * as dn from "dnum";
 import * as v from "valibot";
 import { useReadContract } from "wagmi";
 
-type PriceToken = "LQTY" | "BOLD" | "LUSD" | CollateralSymbol;
+type PriceToken = "LQTY" | "BOLD" | "LUSD" | "SUSDAF" | "ASF" | CollateralSymbol;
 
 function useCollateralPrice(symbol: null | CollateralSymbol): UseQueryResult<Dnum> {
   // "ETH" is a fallback when null is passed, so we can return a standard

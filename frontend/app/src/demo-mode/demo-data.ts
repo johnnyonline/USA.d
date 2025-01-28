@@ -20,6 +20,8 @@ export const ACCOUNT_BALANCES = {
   RETH: dn.from(1.3732, 18),
   WSTETH: dn.from(17.912, 18),
   LUSD: dn.from(1_200, 18),
+  SUSDAF: dn.from(1, 18),
+  ASF: dn.from(3, 18),
 } as const;
 
 const DEMO_ACCOUNT = `0x${"0".repeat(39)}1` as const;

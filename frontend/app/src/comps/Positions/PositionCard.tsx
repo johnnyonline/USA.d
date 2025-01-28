@@ -1,5 +1,6 @@
 import type { HTMLAttributes, ReactElement, ReactNode } from "react";
 
+import { getCardDimensions, useViewport } from "@/src/hooks/useViewport";
 import { IconArrowRight, LoadingSurface } from "@liquity2/uikit";
 import { a, useSpring } from "@react-spring/web";
 import { forwardRef, useState } from "react";
@@ -29,6 +30,7 @@ export const PositionCard = forwardRef<
   secondary,
   ...anchorProps
 }, ref) {
+  const viewport = useViewport();
   const [heading1, heading2] = Array.isArray(heading) ? heading : [heading];
 
   const [hovered, setHovered] = useState(false);
@@ -52,6 +54,18 @@ export const PositionCard = forwardRef<
     },
   });
 
+  // Get responsive dimensions
+  const { height: baseHeight } = getCardDimensions(viewport, "positions");
+
+  // Calculate responsive padding and gaps
+  const responsivePadding = viewport.isMobile ? "8px 12px" : "12px 16px";
+  const responsiveGap = viewport.isMobile ? 12 : 20;
+  const responsiveFontSizes = {
+    heading: viewport.isMobile ? 10 : 12,
+    main: viewport.isMobile ? 24 : 28,
+    secondary: viewport.isMobile ? 12 : 14,
+  };
+
   return (
     <a.a
       ref={ref}
@@ -68,10 +82,11 @@ export const PositionCard = forwardRef<
           overflow: "hidden",
           display: "flex",
           flexDirection: "column",
-          padding: "12px 16px",
+          padding: responsivePadding,
           borderRadius: 8,
           outline: "none",
           "--background": "token(colors.position)",
+          height: baseHeight,
           _focusVisible: {
             outline: "2px solid token(colors.focused)",
           },
@@ -83,12 +98,20 @@ export const PositionCard = forwardRef<
         background: "var(--background)",
       }}
     >
-      {loading && <LoadingSurface />}
+      {loading && (
+        <LoadingSurface
+          className={css({
+            "--loading-color": "token(colors.brandGreen)",
+            opacity: 0.8,
+          })}
+        />
+      )}
       <section
         className={css({
           display: "flex",
           flexDirection: "column",
-          gap: 20,
+          gap: responsiveGap,
+          height: "100%",
         })}
         style={{
           opacity: loading ? 0 : 1,
@@ -104,7 +127,7 @@ export const PositionCard = forwardRef<
         >
           <h1
             className={css({
-              fontSize: 12,
+              fontSize: responsiveFontSizes.heading,
               textTransform: "uppercase",
             })}
           >
@@ -113,7 +136,7 @@ export const PositionCard = forwardRef<
           {heading2 && (
             <div
               className={css({
-                fontSize: 14,
+                fontSize: responsiveFontSizes.secondary,
                 color: "positionContent",
               })}
             >
@@ -146,20 +169,20 @@ export const PositionCard = forwardRef<
             className={css({
               display: "flex",
               flexDirection: "column",
-              marginTop: -24,
+              marginTop: viewport.isMobile ? -16 : -24,
             })}
           >
             <div
               className={css({
                 color: "positionContent",
-                fontSize: 28,
+                fontSize: responsiveFontSizes.main,
               })}
             >
               {main.value}
             </div>
             <div
               className={css({
-                fontSize: 14,
+                fontSize: responsiveFontSizes.secondary,
                 color: "positionContentAlt",
               })}
             >
@@ -167,7 +190,18 @@ export const PositionCard = forwardRef<
             </div>
           </div>
         )}
-        {secondary}
+        <div className={css({ flexGrow: 1 })} />
+
+        {secondary && (
+          <div
+            className={css({
+              marginTop: "auto",
+              fontSize: responsiveFontSizes.secondary,
+            })}
+          >
+            {secondary}
+          </div>
+        )}
       </section>
     </a.a>
   );

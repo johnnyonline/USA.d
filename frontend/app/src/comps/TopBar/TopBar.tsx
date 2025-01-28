@@ -1,24 +1,40 @@
 "use client";
-
-import type { ComponentProps } from "react";
-
 import { Logo } from "@/src/comps/Logo/Logo";
 import { Tag } from "@/src/comps/Tag/Tag";
 import content from "@/src/content";
 import { DEPLOYMENT_FLAVOR } from "@/src/env";
 import { css } from "@/styled-system/css";
-import { IconBorrow, IconDashboard, IconEarn, IconLeverage, IconStake } from "@liquity2/uikit";
+import { IconBorrow, IconDashboard, IconEarn, IconStake } from "@liquity2/uikit";
 import Link from "next/link";
+import type { ComponentProps } from "react";
 import { AccountButton } from "./AccountButton";
 import { Menu } from "./Menu";
 
 const menuItems: ComponentProps<typeof Menu>["menuItems"] = [
   [content.menu.dashboard, "/", IconDashboard],
   [content.menu.borrow, "/borrow", IconBorrow],
-  [content.menu.multiply, "/multiply", IconLeverage],
   [content.menu.earn, "/earn", IconEarn],
-  [content.menu.stake, "/stake", IconStake],
+  [content.menu.ecosystem, "https://app.asymmetry.finance/", IconStake],
+  [content.menu.asf, "https://app.asymmetry.finance/veasf", IconStake],
 ];
+
+const formatAppName = (name: string) => {
+  const words = name.split(" ");
+  if (words.length > 1) {
+    return words.map((word, index) => (
+      <span
+        key={index}
+        className={css({
+          display: "block",
+          lineHeight: "1.2",
+        })}
+      >
+        {word}
+      </span>
+    ));
+  }
+  return name;
+};
 
 export function TopBar() {
   return (
@@ -76,10 +92,16 @@ export function TopBar() {
               display: "flex",
               alignItems: "center",
               gap: 8,
-              whiteSpace: "nowrap",
             })}
           >
-            {content.appName}
+            <div
+              className={css({
+                whiteSpace: "normal",
+                textAlign: "left",
+              })}
+            >
+              {formatAppName(content.appName)}
+            </div>
             {DEPLOYMENT_FLAVOR !== "" && (
               <div
                 className={css({

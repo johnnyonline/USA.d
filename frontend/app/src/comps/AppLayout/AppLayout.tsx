@@ -1,16 +1,12 @@
 "use client";
 
-import type { ReactNode } from "react";
-
 import { useAbout } from "@/src/comps/About/About";
 import { ProtocolStats } from "@/src/comps/ProtocolStats/ProtocolStats";
 import { TopBar } from "@/src/comps/TopBar/TopBar";
 import * as env from "@/src/env";
 import { css } from "@/styled-system/css";
 import { TextButton } from "@liquity2/uikit";
-
-export const LAYOUT_WIDTH = 1092;
-export const MIN_WIDTH = 960;
+import type { ReactNode } from "react";
 
 export function AppLayout({
   children,
@@ -27,18 +23,28 @@ export function AppLayout({
         minHeight: "100vh",
         margin: "0 auto",
         background: "background",
+        maxWidth: {
+          base: "100%",
+          small: "100%",
+          medium: "1140px", // Previous LAYOUT_WIDTH + padding
+        },
+        padding: {
+          base: "0 16px",
+          small: "0 20px",
+          medium: "0 24px",
+        },
       })}
-      style={{
-        minWidth: `${MIN_WIDTH}px`,
-        maxWidth: `${LAYOUT_WIDTH + 24 * 2}px`,
-      }}
     >
       <div
         className={css({
           width: "100%",
           flexGrow: 0,
           flexShrink: 0,
-          paddingBottom: 48,
+          paddingBottom: {
+            base: "24px",
+            small: "32px",
+            medium: "48px",
+          },
         })}
       >
         <TopBar />
@@ -48,10 +54,8 @@ export function AppLayout({
           flexGrow: 1,
           display: "flex",
           flexDirection: "column",
+          width: "100%",
         })}
-        style={{
-          width: `${LAYOUT_WIDTH + 24 * 2}px`,
-        }}
       >
         <div
           className={css({
@@ -59,7 +63,11 @@ export function AppLayout({
             display: "flex",
             flexDirection: "column",
             width: "100%",
-            padding: "0 24px",
+            padding: {
+              base: "0 12px",
+              small: "0 16px",
+              medium: "0 24px",
+            },
           })}
         >
           {children}
@@ -67,7 +75,11 @@ export function AppLayout({
         <div
           className={css({
             width: "100%",
-            padding: "48px 24px 0",
+            padding: {
+              base: "32px 12px 0",
+              small: "40px 16px 0",
+              medium: "48px 24px 0",
+            },
           })}
         >
           <BuildInfo />

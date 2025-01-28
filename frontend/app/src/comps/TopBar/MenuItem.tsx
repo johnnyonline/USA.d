@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
 
 import { css } from "@/styled-system/css";
-import { token } from "@/styled-system/tokens";
 
 export function MenuItem({
   icon,
@@ -20,13 +19,13 @@ export function MenuItem({
         alignItems: "center",
         gap: 12,
         height: "100%",
-        color: "content",
+        color: selected ? "selected" : "infoSurfaceContent",
         cursor: "pointer",
         userSelect: "none",
+        _hover: {
+          color: "accent",
+        },
       })}
-      style={{
-        color: token(`colors.${selected ? "selected" : "interactive"}`),
-      }}
     >
       <div
         className={css({

@@ -282,11 +282,12 @@ const parsedEnv = v.safeParse(EnvSchema, {
 });
 
 if (!parsedEnv.success) {
-  console.error(
-    "Invalid environment variable(s):",
-    v.flatten<typeof EnvSchema>(parsedEnv.issues),
-  );
-  throw new Error("Invalid environment variable(s)");
+  console.error("Invalid environment variables:");
+  parsedEnv.issues.forEach((issue) => {
+    const path = issue.path?.map((p) => p.key).join(".");
+    console.error(`- ${path || "root"}: ${issue.message}`);
+  });
+  throw new Error("Invalid environment variables");
 }
 
 export const {

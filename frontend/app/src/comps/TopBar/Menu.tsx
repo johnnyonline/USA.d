@@ -1,7 +1,6 @@
 import type { ComponentType } from "react";
 
 import { css } from "@/styled-system/css";
-import { token } from "@/styled-system/tokens";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { MenuItem } from "./MenuItem";
@@ -45,11 +44,6 @@ export function Menu({
                     borderRadius: 4,
                   },
                 })}
-                style={{
-                  color: token(
-                    `colors.${selected ? "selected" : "interactive"}`,
-                  ),
-                }}
               >
                 <MenuItem
                   icon={<Icon />}

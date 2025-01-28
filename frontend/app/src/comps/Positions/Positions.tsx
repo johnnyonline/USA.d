@@ -1,17 +1,19 @@
 import type { Address, Position, PositionLoanUncommitted } from "@/src/types";
 import type { ReactNode } from "react";
 
-import { ActionCard } from "@/src/comps/ActionCard/ActionCard";
 import content from "@/src/content";
 import { ACCOUNT_POSITIONS } from "@/src/demo-mode";
 import { DEMO_MODE } from "@/src/env";
+import { getCardDimensions, getResponsiveColumns, useViewport } from "@/src/hooks/useViewport";
 import { useStakePosition } from "@/src/liquity-utils";
 import { useEarnPositionsByAccount, useLoansByAccount } from "@/src/subgraph-hooks";
+
 import { css } from "@/styled-system/css";
 import { a, useSpring, useTransition } from "@react-spring/web";
 import * as dn from "dnum";
 import { useEffect, useRef, useState } from "react";
 import { match, P } from "ts-pattern";
+import { EmptyPositionCard } from "./EmptyPositionCard";
 import { NewPositionCard } from "./NewPositionCard";
 import { PositionCard } from "./PositionCard";
 import { PositionCardEarn } from "./PositionCardEarn";
@@ -64,7 +66,7 @@ export function Positions({
     : "actions";
 
   // preloading for 1 second, prevents flickering
-  // since the account doesn’t reconnect instantly
+  // since the account doesn't reconnect instantly
   const [preLoading, setPreLoading] = useState(true);
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -104,6 +106,13 @@ function PositionsGroup({
   showNewPositionCard: boolean;
 }) {
   const title_ = title(mode);
+  const viewport = useViewport();
+
+  // Get responsive columns based on viewport
+  const responsiveColumns = getResponsiveColumns(viewport, mode, columns);
+
+  // Get responsive card dimensions
+  const { height: cardHeight } = getCardDimensions(viewport, mode);
 
   const cards = match(mode)
     .returnType<Array<[number, ReactNode]>>()
@@ -143,22 +152,17 @@ function PositionsGroup({
     ])
     .with("actions", () =>
       showNewPositionCard
-        ? [
-          [0, <ActionCard key="0" type="borrow" />],
-          [1, <ActionCard key="1" type="multiply" />],
-          [2, <ActionCard key="2" type="earn" />],
-          [3, <ActionCard key="3" type="stake" />],
-        ]
+        ? [[0, <EmptyPositionCard key="empty" />]]
         : [])
     .exhaustive();
 
   if (mode === "actions") {
-    columns = 4;
+    columns = 1;
   }
 
-  const cardHeight = mode === "actions" ? 144 : 180;
-  const rows = Math.ceil(cards.length / columns);
-  const containerHeight = cardHeight * rows + 24 * (rows - 1);
+  const containerHeight = mode === "actions"
+    ? "auto"
+    : "auto";
 
   const positionTransitions = useTransition(cards, {
     keys: ([index]) => `${mode}${index}`,
@@ -191,10 +195,10 @@ function PositionsGroup({
   }
 
   const containerSpring = useSpring({
-    initial: { height: cardHeight },
-    from: { height: cardHeight },
+    initial: { height: mode === "actions" ? "auto" : cardHeight },
+    from: { height: mode === "actions" ? "auto" : cardHeight },
     to: { height: containerHeight },
-    immediate: !animateHeight.current || mode === "loading",
+    immediate: !animateHeight.current || mode === "loading" || mode === "actions",
     config: {
       mass: 1,
       tension: 2400,
@@ -207,13 +211,19 @@ function PositionsGroup({
       {title_ && (
         <h1
           className={css({
-            fontSize: 32,
+            fontSize: {
+              base: 24,
+              small: 28,
+              medium: 32,
+            },
             color: "content",
             userSelect: "none",
+            paddingBottom: {
+              base: 24,
+              small: 28,
+              medium: 32,
+            },
           })}
-          style={{
-            paddingBottom: 32,
-          }}
           onClick={onTitleClick}
         >
           {title_}
@@ -230,18 +240,26 @@ function PositionsGroup({
         <a.div
           className={css({
             display: "grid",
-            gap: 24,
+            gap: {
+              base: "24px",
+              small: "28px",
+              medium: "32px",
+            },
+            width: mode === "actions" ? "100%" : "auto",
           })}
           style={{
-            gridTemplateColumns: `repeat(${columns}, 1fr)`,
-            gridAutoRows: cardHeight,
+            gridTemplateColumns: mode === "actions"
+              ? "1fr"
+              : `repeat(${responsiveColumns}, 1fr)`,
+            gridAutoRows: mode === "actions" ? "auto" : "auto",
           }}
         >
           {positionTransitions((style, [_, card]) => (
             <a.div
               className={css({
                 display: "grid",
-                height: "100%",
+                height: "auto",
+                width: "100%",
                 willChange: "transform, opacity",
               })}
               style={style}

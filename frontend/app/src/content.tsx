@@ -5,7 +5,7 @@ import type { ReactNode as N } from "react";
 
 export default {
   // Used in the top bar and other places
-  appName: "Liquity V2",
+  appName: "Asymmetry Finance",
 
   // Menu bar
   menu: {
@@ -14,6 +14,8 @@ export default {
     multiply: "Multiply",
     earn: "Earn",
     stake: "Stake",
+    ecosystem: "Ecosystem",
+    asf: "ASF",
   },
 
   accountButton: {

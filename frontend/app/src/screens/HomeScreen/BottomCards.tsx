@@ -175,13 +175,12 @@ export const BottomCards: React.FC = () => {
         flexDirection: { base: "column", medium: "row" },
         gap: "24px",
         padding: "32px",
-        backgroundColor: "#FFF5E6", // Warm background
-        borderTop: "2px solid #E6C7A0", // Warm border
+        backgroundColor: "transparent",
+        border: "2px solid #e6c7a0",
         borderRadius: "20px",
         width: "100%",
         maxWidth: "1280px",
         margin: "0 auto",
-        boxShadow: "0 4px 20px rgba(0, 0, 0, 0.05)",
       })}
     >
       <Card

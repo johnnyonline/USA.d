@@ -25,9 +25,11 @@ export function HomeTable<Cols extends readonly ReactNode[]>({
         flexDirection: "column",
         gap: 32,
         padding: 16,
-        background: "surface",
-        border: "1px solid token(colors.tableBorder)",
+        background: "desert:200",
+        border: `1px solid token(colors.border)`,
         borderRadius: 8,
+        height: "fit-content",
+        minHeight: "min-content",
       })}
     >
       <header
@@ -45,7 +47,7 @@ export function HomeTable<Cols extends readonly ReactNode[]>({
             fontSize: 20,
           })}
         >
-          <span>{title}</span>
+          <span className={css({ color: "desert:950" })}>{title}</span>
           <span>{icon}</span>
         </h1>
         <div
@@ -74,6 +76,7 @@ export function HomeTable<Cols extends readonly ReactNode[]>({
           "& td": {
             padding: "12px 0",
             borderTop: "1px solid token(colors.tableBorder)",
+            color: "contentAlt3",
           },
           "& th:first-of-type, & td:first-of-type": {
             textAlign: "left",

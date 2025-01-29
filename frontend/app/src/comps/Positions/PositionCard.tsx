@@ -101,7 +101,7 @@ export const PositionCard = forwardRef<
       {loading && (
         <LoadingSurface
           className={css({
-            "--loading-color": "token(colors.brandGreen)",
+            "--loading-color": "token(colors.brandGreenContent)",
             opacity: 0.8,
           })}
         />

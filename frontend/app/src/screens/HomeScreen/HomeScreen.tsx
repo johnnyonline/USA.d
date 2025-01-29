@@ -48,7 +48,7 @@ export function HomeScreen() {
         })}
       >
         <HomeTable
-          title="Borrow BOLD against ETH and staked ETH"
+          title="Borrow USA.d"
           subtitle="You can adjust your loans, including your interest rate, at any time"
           icon={<IconBorrow />}
           columns={["Collateral", "Avg rate, p.a.", "Max LTV", null] as const}
@@ -60,8 +60,8 @@ export function HomeScreen() {
           ))}
         />
         <HomeTable
-          title="Earn rewards with BOLD"
-          subtitle="Earn BOLD & (staked) ETH rewards by putting your BOLD in a stability pool"
+          title="Earn rewards"
+          subtitle="Earn autocompounded and optimized rewards across all stability pools with sUSA.d automatically. Or earn in an individual stability pool by depositing your USA.d."
           icon={<IconEarn />}
           columns={["Pool", "Current APR", "Pool size", null] as const}
           rows={collSymbols.map((symbol) => (
@@ -140,13 +140,14 @@ function BorrowingRow({ symbol }: { symbol: CollateralSymbol }) {
                   })}
                 >
                   Borrow
-                  <TokenIcon symbol="BOLD" size="mini" />
+                  <TokenIcon symbol="SUSDAF" size="mini" />
                 </div>
               }
               title={`Borrow ${collateral?.name} from ${symbol}`}
             />
           </Link>
-          <Link
+          {
+            /* <Link
             href={`/multiply/${symbol.toLowerCase()}`}
             legacyBehavior
             passHref
@@ -167,7 +168,8 @@ function BorrowingRow({ symbol }: { symbol: CollateralSymbol }) {
               }
               title={`Borrow ${collateral?.name} from ${symbol}`}
             />
-          </Link>
+          </Link> */
+          }
         </div>
       </td>
     </tr>

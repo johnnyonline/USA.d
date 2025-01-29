@@ -17,7 +17,6 @@ import { HomeTable } from "./HomeTable";
 
 export function HomeScreen() {
   const account = useAccount();
-
   const { collaterals } = getContracts();
   const collSymbols = collaterals.map((coll) => coll.symbol);
 
@@ -27,7 +26,7 @@ export function HomeScreen() {
         flexGrow: 1,
         display: "flex",
         flexDirection: "column",
-        gap: 64,
+        gap: { base: "32px", medium: "64px" },
         width: "100%",
       })}
     >
@@ -35,8 +34,17 @@ export function HomeScreen() {
       <div
         className={css({
           display: "grid",
-          gap: 24,
-          gridTemplateColumns: "1fr 1fr",
+          gap: { base: "32px", medium: "24px" },
+          gridTemplateColumns: {
+            base: "1fr",
+            large: "1fr 1fr",
+          },
+          width: "100%",
+          padding: {
+            base: "0 16px",
+            medium: "0 24px",
+            large: "0",
+          },
         })}
       >
         <HomeTable
@@ -69,11 +77,8 @@ export function HomeScreen() {
   );
 }
 
-function BorrowingRow({
-  symbol,
-}: {
-  symbol: CollateralSymbol;
-}) {
+// Updated BorrowingRow with responsive styles
+function BorrowingRow({ symbol }: { symbol: CollateralSymbol }) {
   const collIndex = getCollIndexFromSymbol(symbol);
   const collateral = getCollToken(collIndex);
   const avgInterestRate = useAverageInterestRate(collIndex);
@@ -89,7 +94,8 @@ function BorrowingRow({
           className={css({
             display: "flex",
             alignItems: "center",
-            gap: 8,
+            gap: { base: 4, medium: 8 },
+            fontSize: { base: "14px", medium: "16px" },
           })}
         >
           <TokenIcon symbol={symbol} size="mini" />
@@ -113,8 +119,9 @@ function BorrowingRow({
         <div
           className={css({
             display: "flex",
-            gap: 16,
+            gap: { base: 8, medium: 16 },
             justifyContent: "flex-end",
+            flexDirection: { base: "column", small: "row" },
           })}
         >
           <Link
@@ -129,7 +136,7 @@ function BorrowingRow({
                     display: "flex",
                     alignItems: "center",
                     gap: 4,
-                    fontSize: 14,
+                    fontSize: { base: 12, medium: 14 },
                   })}
                 >
                   Borrow
@@ -151,7 +158,7 @@ function BorrowingRow({
                     display: "flex",
                     alignItems: "center",
                     gap: 4,
-                    fontSize: 14,
+                    fontSize: { base: 12, medium: 14 },
                   })}
                 >
                   Multiply
@@ -167,11 +174,8 @@ function BorrowingRow({
   );
 }
 
-function EarnRewardsRow({
-  symbol,
-}: {
-  symbol: CollateralSymbol;
-}) {
+// Updated EarnRewardsRow with responsive styles
+function EarnRewardsRow({ symbol }: { symbol: CollateralSymbol }) {
   const collIndex = getCollIndexFromSymbol(symbol);
   const collateral = getCollToken(collIndex);
   const earnPool = useEarnPool(collIndex);
@@ -183,7 +187,8 @@ function EarnRewardsRow({
           className={css({
             display: "flex",
             alignItems: "center",
-            gap: 8,
+            gap: { base: 4, medium: 8 },
+            fontSize: { base: "14px", medium: "16px" },
           })}
         >
           <TokenIcon symbol={symbol} size="mini" />
@@ -218,7 +223,7 @@ function EarnRewardsRow({
                   display: "flex",
                   alignItems: "center",
                   gap: 4,
-                  fontSize: 14,
+                  fontSize: { base: 12, medium: 14 },
                 })}
               >
                 Earn

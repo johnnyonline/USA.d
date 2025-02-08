@@ -10,7 +10,7 @@ contract WrappedWbtc is ERC20Wrapper {
     uint256 private constant _DECIMALS_DIFF = 10;
     address private constant _WBTC = 0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599;
 
-    constructor() ERC20Wrapper(IERC20(_WBTC)) ERC20("Wrapped WBTC", "WWBTC") {
+    constructor() ERC20Wrapper(IERC20(_WBTC)) ERC20("Wrapped WBTC", "WBTC18") {
         require(IERC20Metadata(_WBTC).decimals() == 8, "!DECIMALS");
     }
 

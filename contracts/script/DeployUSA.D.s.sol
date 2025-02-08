@@ -194,7 +194,7 @@ contract DeployUSADScript is StdCheats, MetadataDeployment {
         collSymbols[1] = "sDAI";
         collSymbols[2] = "sfrxETH";
         collSymbols[3] = "tBTC";
-        collSymbols[4] = "WWBTC";
+        collSymbols[4] = "WBTC18";
         collSymbols[5] = "sUSDS";
 
         wrappedWbtc = new WrappedWbtc();

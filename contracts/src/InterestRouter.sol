@@ -13,7 +13,7 @@ contract InterestRouter is IInterestRouter, Ownable {
 
     event Swept(address indexed token, address indexed to, uint256 amount);
 
-    address private constant _OWNER = 0x263b03BbA0BbbC320928B6026f5eAAFAD9F1ddeb;
+    address private constant _OWNER = 0xce352181C0f0350F1687e1a44c45BC9D96ee738B;
 
     constructor() Ownable(_OWNER) {}
 

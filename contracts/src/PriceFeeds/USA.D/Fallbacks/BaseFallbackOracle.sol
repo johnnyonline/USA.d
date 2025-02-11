@@ -17,7 +17,7 @@ abstract contract BaseFallbackOracle is BaseOracle, Ownable2Step {
 
     ICurvePriceAggregator public immutable AGG;
 
-    address private constant _OWNER = 0x263b03BbA0BbbC320928B6026f5eAAFAD9F1ddeb;
+    address private constant _OWNER = 0xce352181C0f0350F1687e1a44c45BC9D96ee738B;
 
     constructor(string memory _description, address _agg) BaseOracle(_description) {
         _transferOwnership(_OWNER);

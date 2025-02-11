@@ -33,7 +33,7 @@ contract MetadataNFT is IMetadataNFT, Ownable, UUPSUpgradeable {
 
     event AssetReaderUpdated(address indexed _assetReader);
 
-    address public constant OWNER = 0x263b03BbA0BbbC320928B6026f5eAAFAD9F1ddeb;
+    address public constant OWNER = 0xce352181C0f0350F1687e1a44c45BC9D96ee738B;
 
     string public constant name = "USA.d Trove";
     string public constant description = "USA.d Trove position";

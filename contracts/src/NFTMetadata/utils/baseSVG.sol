@@ -1,14 +1,18 @@
 //SPDX-License-Identifier: MIT
-pragma solidity 0.8.24;
+pragma solidity 0.8.18;
 
 import {svg} from "./SVG.sol";
 import {utils, LibString, numUtils} from "./Utils.sol";
 import "./FixedAssets.sol";
 
 library baseSVG {
-    string constant GEIST = 'style="font-family: Geist" ';
+    string constant GEIST = 'style="font-family: DM Sans" ';
     string constant DARK_BLUE = "#121B44";
     string constant STOIC_WHITE = "#DEE4FB";
+    string constant STATUS_GREEN = "#285833";    // Active status (40% darker than #439255)
+    string constant STATUS_BLUE = "#1A255E";     // Closed status (40% darker than #2B3D9C)
+    string constant STATUS_RED = "#681F1F";      // Liquidated status (40% darker than #AE3434)
+    string constant STATUS_ORANGE = "#683B1A";   // Below Min Debt status (40% darker than #AE622B)
 
     function _svgProps() internal pure returns (string memory) {
         return string.concat(
@@ -21,18 +25,21 @@ library baseSVG {
 
     function _baseElements(FixedAssetReader _assetReader) internal view returns (string memory) {
         return string.concat(
-            svg.rect(
-                string.concat(
-                    svg.prop("fill", DARK_BLUE),
-                    svg.prop("rx", "8"),
-                    svg.prop("width", "300"),
-                    svg.prop("height", "484")
-                )
-            ),
-            _styles(_assetReader),
-            _leverageLogo(),
+            _leverageLogo(_assetReader),
             _boldLogo(_assetReader),
             _staticTextEls()
+        );
+    }
+    
+    // New function to create main background rect with status color
+    function _backgroundRect(string memory _statusColor) internal pure returns (string memory) {
+        return svg.rect(
+            string.concat(
+                svg.prop("fill", _statusColor),
+                svg.prop("rx", "8"),
+                svg.prop("width", "300"),
+                svg.prop("height", "484")
+            )
         );
     }
 
@@ -41,22 +48,26 @@ library baseSVG {
             "style",
             utils.NULL,
             string.concat(
-                '@font-face { font-family: "Geist"; src: url("data:font/woff2;utf-8;base64,',
-                _assetReader.readAsset(bytes4(keccak256("geist"))),
+                '@font-face { font-family: "DM Sans"; src: url("data:font/woff2;utf-8;base64,',
+                _assetReader.readAsset(bytes4(keccak256("dmSans"))),
                 '"); }'
             )
         );
     }
 
-    function _leverageLogo() internal pure returns (string memory) {
-        return string.concat(
-            svg.path(
-                "M20.2 31.2C19.1 32.4 17.6 33 16 33L16 21C17.6 21 19.1 21.6 20.2 22.7C21.4 23.9 22 25.4 22 27C22 28.6 21.4 30.1 20.2 31.2Z",
-                svg.prop("fill", STOIC_WHITE)
-            ),
-            svg.path(
-                "M22 27C22 25.4 22.6 23.9 23.8 22.7C25 21.6 26.4 21 28 21V33C26.4 33 25 32.4 24 31.2C22.6 30.1 22 28.6 22 27Z",
-                svg.prop("fill", STOIC_WHITE)
+    function _leverageLogo(FixedAssetReader _assetReader) internal view returns (string memory) {
+        return svg.el(
+            "image",
+            string.concat(
+                svg.prop("x", "16"),
+                svg.prop("y", "18"),
+                svg.prop("width", "18"),
+                svg.prop("height", "18"),
+                svg.prop("opacity", "0.8"),
+                svg.prop(
+                    "href",
+                    string.concat("data:image/svg+xml;base64,", _assetReader.readAsset(bytes4(keccak256("leverageLogo"))))
+                )
             )
         );
     }
@@ -65,13 +76,13 @@ library baseSVG {
         return svg.el(
             "image",
             string.concat(
-                svg.prop("x", "264"),
-                svg.prop("y", "373.5"),
-                svg.prop("width", "20"),
-                svg.prop("height", "20"),
+                svg.prop("x", "262"),
+                svg.prop("y", "371.5"),
+                svg.prop("width", "24"),
+                svg.prop("height", "24"),
                 svg.prop(
                     "href",
-                    string.concat("data:image/svg+xml;base64,", _assetReader.readAsset(bytes4(keccak256("BOLD"))))
+                    string.concat("data:image/svg+xml;base64,", _assetReader.readAsset(bytes4(keccak256("USA.d"))))
                 )
             )
         );
@@ -112,7 +123,7 @@ library baseSVG {
             svg.text(
                 string.concat(
                     GEIST,
-                    svg.prop("x", "265"),
+                    svg.prop("x", "245"),
                     svg.prop("y", "422"),
                     svg.prop("font-size", "20"),
                     svg.prop("fill", "white")
@@ -182,10 +193,10 @@ library baseSVG {
         return svg.el(
             "image",
             string.concat(
-                svg.prop("x", "264"),
-                svg.prop("y", "342.5"),
-                svg.prop("width", "20"),
-                svg.prop("height", "20"),
+                svg.prop("x", "262"),
+                svg.prop("y", "340.5"),
+                svg.prop("width", "24"),
+                svg.prop("height", "24"),
                 svg.prop(
                     "href",
                     string.concat(
@@ -196,10 +207,15 @@ library baseSVG {
         );
     }
 
-    function _statusEl(string memory _status) internal pure returns (string memory) {
+    function _statusEl(string memory _status, string memory _color) internal pure returns (string memory) {
+        // Always use white for status text, since background will be colored
         return svg.text(
             string.concat(
-                GEIST, svg.prop("x", "40"), svg.prop("y", "33"), svg.prop("font-size", "14"), svg.prop("fill", "white")
+                GEIST, 
+                svg.prop("x", "40"), 
+                svg.prop("y", "33"), 
+                svg.prop("font-size", "14"), 
+                svg.prop("fill", "white")
             ),
             _status
         );

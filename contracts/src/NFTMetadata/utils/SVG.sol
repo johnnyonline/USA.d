@@ -118,6 +118,10 @@ library svg {
         return el("filter", _props, _children);
     }
 
+    function clipPath(string memory _props, string memory _children) internal pure returns (string memory) {
+        return el("clipPath", _props, _children);
+    }
+
     function cdata(string memory _content) internal pure returns (string memory) {
         return string.concat("<![CDATA[", _content, "]]>");
     }

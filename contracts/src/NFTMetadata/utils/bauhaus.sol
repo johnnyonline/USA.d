@@ -1,16 +1,19 @@
 //SPDX-License-Identifier: MIT
-pragma solidity 0.8.24;
+pragma solidity 0.8.18;
 
 import "./SVG.sol";
+import {LibString} from "./Utils.sol";
 
 library bauhaus {
-    string constant GOLDEN = "#F5D93A";
-    string constant CORAL = "#FB7C59";
-    string constant GREEN = "#63D77D";
-    string constant CYAN = "#95CBF3";
-    string constant BLUE = "#405AE5";
-    string constant DARK_BLUE = "#121B44";
-    string constant BROWN = "#D99664";
+    // Color constants - clean, professional palette
+    string constant GOLDEN = "#D1B931";
+    string constant CORAL = "#D6694C";
+    string constant GREEN = "#439255";
+    string constant CYAN = "#7FADD0";
+    string constant BLUE = "#2B3D9C";
+    string constant DARK_BLUE = "#0F1739";
+    string constant WHITE = "#FFFFFF";
+    string constant LIGHT_GRAY = "#CACACA";
 
     enum colorCode {
         GOLDEN,
@@ -19,21 +22,8 @@ library bauhaus {
         CYAN,
         BLUE,
         DARK_BLUE,
-        BROWN
-    }
-
-    function _bauhaus(string memory _collName, uint256 _troveId) internal pure returns (string memory) {
-        bytes32 collSig = keccak256(bytes(_collName));
-        uint256 variant = _troveId % 4;
-
-        if (collSig == keccak256("WETH")) {
-            return _img1(variant);
-        } else if (collSig == keccak256("wstETH")) {
-            return _img2(variant);
-        } else {
-            // assume rETH
-            return _img3(variant);
-        }
+        WHITE,
+        LIGHT_GRAY
     }
 
     function _colorCode2Hex(colorCode _color) private pure returns (string memory) {
@@ -49,465 +39,694 @@ library bauhaus {
             return BLUE;
         } else if (_color == colorCode.DARK_BLUE) {
             return DARK_BLUE;
+        } else if (_color == colorCode.WHITE) {
+            return WHITE;
+        } else if (_color == colorCode.LIGHT_GRAY) {
+            return LIGHT_GRAY;
         } else {
-            return BROWN;
+            return DARK_BLUE;
         }
     }
-
-    struct COLORS {
-        colorCode rect1;
-        colorCode rect2;
-        colorCode rect3;
-        colorCode rect4;
-        colorCode rect5;
-        colorCode poly;
-        colorCode circle1;
-        colorCode circle2;
-        colorCode circle3;
+    
+    function _colorCode2Hex(colorCode _color, uint8 _alpha) private pure returns (string memory) {
+        string memory baseColor = _colorCode2Hex(_color);
+        
+        if (_alpha == 255) {
+            return baseColor;
+        }
+        
+        string memory hexAlpha = LibString.toHexString(uint256(_alpha));
+        if (bytes(hexAlpha).length == 1) {
+            hexAlpha = string.concat("0", hexAlpha);
+        }
+        
+        return string.concat(baseColor, hexAlpha);
     }
 
-    function _colors1(uint256 _variant) internal pure returns (COLORS memory) {
-        if (_variant == 0) {
-            return COLORS(
-                colorCode.BLUE, // rect1
-                colorCode.GOLDEN, // rect2
-                colorCode.GOLDEN, // rect3
-                colorCode.BROWN, // rect4
-                colorCode.CORAL, // rect5
-                colorCode.CYAN, // poly
-                colorCode.GREEN, // circle1
-                colorCode.DARK_BLUE, // circle2
-                colorCode.GOLDEN // circle3
-            );
-        } else if (_variant == 1) {
-            return COLORS(
-                colorCode.GREEN, // rect1
-                colorCode.BLUE, // rect2
-                colorCode.GOLDEN, // rect3
-                colorCode.BROWN, // rect4
-                colorCode.GOLDEN, // rect5
-                colorCode.CORAL, // poly
-                colorCode.BLUE, // circle1
-                colorCode.DARK_BLUE, // circle2
-                colorCode.BLUE // circle3
-            );
-        } else if (_variant == 2) {
-            return COLORS(
-                colorCode.BLUE, // rect1
-                colorCode.GOLDEN, // rect2
-                colorCode.CYAN, // rect3
-                colorCode.GOLDEN, // rect4
-                colorCode.BROWN, // rect5
-                colorCode.GREEN, // poly
-                colorCode.CORAL, // circle1
-                colorCode.DARK_BLUE, // circle2
-                colorCode.BROWN // circle3
-            );
-        } else {
-            return COLORS(
-                colorCode.CYAN, // rect1
-                colorCode.BLUE, // rect2
-                colorCode.BLUE, // rect3
-                colorCode.BROWN, // rect4
-                colorCode.BLUE, // rect5
-                colorCode.GREEN, // poly
-                colorCode.GOLDEN, // circle1
-                colorCode.DARK_BLUE, // circle2
-                colorCode.BLUE // circle3
-            );
+    // Quadtree structure used for generating line-based patterns
+    struct QuadtreeCell {
+        uint256 x;
+        uint256 y;
+        uint256 width;
+        uint256 height;
+        bool divided;
+    }
+
+    // Line segment structure
+    struct Line {
+        uint256 x1;
+        uint256 y1;
+        uint256 x2;
+        uint256 y2;
+    }
+
+    // Main entry point - selects pattern based on status
+    function _bauhaus(string memory _collName, uint256 _status) internal pure returns (string memory) {
+        if (_status == 0) {        // Active
+            return _reflectionPattern(_colorCode2Hex(colorCode.GREEN));
+        } else if (_status == 1) { // Closed
+            return _ttenPattern(_colorCode2Hex(colorCode.BLUE));
+        } else if (_status == 2) { // Liquidated
+            return _gyratePattern(_colorCode2Hex(colorCode.CORAL));
+        } else {                   // Below Min Debt
+            return _geometricPattern(0.8, 14, 24680, _colorCode2Hex(colorCode.CORAL));
         }
     }
-
-    function _img1(uint256 _variant) internal pure returns (string memory) {
-        COLORS memory colors = _colors1(_variant);
-        return string.concat(_rects1(colors), _polygons1(colors), _circles1(colors));
+    
+    // PRNG functions for deterministic generation
+    function _random(uint256 seed) private pure returns (uint256) {
+        return uint256(keccak256(abi.encodePacked(seed)));
     }
-
-    function _rects1(COLORS memory _colors) internal pure returns (string memory) {
-        return string.concat(
-            //background
+    
+    function _randomRange(uint256 seed, uint256 min, uint256 max) private pure returns (uint256) {
+        return min + (_random(seed) % (max - min));
+    }
+    
+    // Generate a quadtree-based geometric pattern with line segments
+    function _geometricPattern(
+        uint8 strokeWidth, 
+        uint8 complexity, 
+        uint256 seed, 
+        string memory color
+    ) private pure returns (string memory) {
+        string memory result = "";
+        
+        // Define the pattern box
+        uint256 boxX = 26;
+        uint256 boxY = 65;
+        uint256 boxWidth = 248;
+        uint256 boxHeight = 248;
+        
+        // Add background
+        result = string.concat(
+            result,
             svg.rect(
                 string.concat(
-                    svg.prop("x", "16"),
-                    svg.prop("y", "55"),
-                    svg.prop("width", "268"),
-                    svg.prop("height", "268"),
-                    svg.prop("fill", DARK_BLUE)
-                )
-            ),
-            // large right rect | rect1
-            svg.rect(
-                string.concat(
-                    svg.prop("x", "128"),
-                    svg.prop("y", "55"),
-                    svg.prop("width", "156"),
-                    svg.prop("height", "268"),
-                    svg.prop("fill", _colorCode2Hex(_colors.rect1))
-                )
-            ),
-            // small upper right rect | rect2
-            svg.rect(
-                string.concat(
-                    svg.prop("x", "228"),
-                    svg.prop("y", "55"),
-                    svg.prop("width", "56"),
-                    svg.prop("height", "56"),
-                    svg.prop("fill", _colorCode2Hex(_colors.rect2))
-                )
-            ),
-            // large central left rect | rect3
-            svg.rect(
-                string.concat(
-                    svg.prop("x", "16"),
-                    svg.prop("y", "111"),
-                    svg.prop("width", "134"),
-                    svg.prop("height", "156"),
-                    svg.prop("fill", _colorCode2Hex(_colors.rect3))
-                )
-            ),
-            // small lower left rect | rect4
-            svg.rect(
-                string.concat(
-                    svg.prop("x", "16"),
-                    svg.prop("y", "267"),
-                    svg.prop("width", "112"),
-                    svg.prop("height", "56"),
-                    svg.prop("fill", _colorCode2Hex(_colors.rect4))
-                )
-            ),
-            // small lower right rect | rect5
-            svg.rect(
-                string.concat(
-                    svg.prop("x", "228"),
-                    svg.prop("y", "267"),
-                    svg.prop("width", "56"),
-                    svg.prop("height", "56"),
-                    svg.prop("fill", _colorCode2Hex(_colors.rect5))
+                    svg.prop("x", LibString.toString(boxX)),
+                    svg.prop("y", LibString.toString(boxY)),
+                    svg.prop("width", LibString.toString(boxWidth)),
+                    svg.prop("height", LibString.toString(boxHeight)),
+                    svg.prop("rx", "5"),
+                    svg.prop("fill", color),
+                    svg.prop("fill-opacity", "0.15")
                 )
             )
         );
-    }
-
-    function _polygons1(COLORS memory _colors) internal pure returns (string memory) {
-        return string.concat(
-            // left triangle | poly1
-            svg.polygon(
-                string.concat(svg.prop("points", "16,55 72,55 16,111"), svg.prop("fill", _colorCode2Hex(_colors.poly)))
-            ),
-            // right triangle | poly2
-            svg.polygon(
-                string.concat(svg.prop("points", "72,55 128,55 72,111"), svg.prop("fill", _colorCode2Hex(_colors.poly)))
+        
+        // Create the initial cell
+        QuadtreeCell memory root = QuadtreeCell({
+            x: boxX,
+            y: boxY,
+            width: boxWidth,
+            height: boxHeight,
+            divided: false
+        });
+        
+        // Generate a predefined number of cells based on complexity
+        QuadtreeCell[] memory cells = new QuadtreeCell[](30);
+        cells[0] = root;
+        uint256 cellCount = 1;
+        
+        // Generate a predetermined pattern based on seed
+        for (uint256 i = 0; i < 8 && i < cellCount; i++) {
+            uint256 currentSeed = seed + i;
+            
+            // Divide some cells based on deterministic rules
+            if (!cells[i].divided && _random(currentSeed) % 100 < 80) {
+                // Mark as divided
+                cells[i].divided = true;
+                
+                // Check if we have space for 4 more cells
+                if (cellCount + 4 <= cells.length) {
+                    uint256 halfWidth = cells[i].width / 2;
+                    uint256 halfHeight = cells[i].height / 2;
+                
+                    // NW
+                    cells[cellCount++] = QuadtreeCell({
+                        x: cells[i].x,
+                        y: cells[i].y,
+                        width: halfWidth,
+                        height: halfHeight,
+                        divided: false
+                    });
+                    
+                    // NE
+                    cells[cellCount++] = QuadtreeCell({
+                        x: cells[i].x + halfWidth,
+                        y: cells[i].y,
+                        width: halfWidth,
+                        height: halfHeight,
+                        divided: false
+                    });
+                    
+                    // SW
+                    cells[cellCount++] = QuadtreeCell({
+                        x: cells[i].x,
+                        y: cells[i].y + halfHeight,
+                        width: halfWidth,
+                        height: halfHeight,
+                        divided: false
+                    });
+                    
+                    // SE
+                    cells[cellCount++] = QuadtreeCell({
+                        x: cells[i].x + halfWidth,
+                        y: cells[i].y + halfHeight,
+                        width: halfWidth,
+                        height: halfHeight,
+                        divided: false
+                    });
+                }
+            }
+        }
+        
+        // Generate and draw division lines
+        for (uint256 i = 0; i < cellCount; i++) {
+            if (cells[i].divided) {
+                uint256 midX = cells[i].x + (cells[i].width / 2);
+                uint256 midY = cells[i].y + (cells[i].height / 2);
+                
+                // Vertical division line
+                result = string.concat(
+                    result,
+                    svg.line(
+                        string.concat(
+                            svg.prop("x1", LibString.toString(midX)),
+                            svg.prop("y1", LibString.toString(cells[i].y)),
+                            svg.prop("x2", LibString.toString(midX)),
+                            svg.prop("y2", LibString.toString(cells[i].y + cells[i].height)),
+                            svg.prop("stroke", WHITE),
+                            svg.prop("stroke-width", LibString.toString(strokeWidth)),
+                            svg.prop("stroke-opacity", "0.8")
+                        )
+                    )
+                );
+                
+                // Horizontal division line
+                result = string.concat(
+                    result,
+                    svg.line(
+                        string.concat(
+                            svg.prop("x1", LibString.toString(cells[i].x)),
+                            svg.prop("y1", LibString.toString(midY)),
+                            svg.prop("x2", LibString.toString(cells[i].x + cells[i].width)),
+                            svg.prop("y2", LibString.toString(midY)),
+                            svg.prop("stroke", WHITE),
+                            svg.prop("stroke-width", LibString.toString(strokeWidth)),
+                            svg.prop("stroke-opacity", "0.8")
+                        )
+                    )
+                );
+            }
+        }
+        
+        // Generate triangulation lines (diagonals)
+        for (uint256 i = 0; i < cellCount; i++) {
+            if (cells[i].divided) {
+                // Add diagonal lines based on cell-specific seed
+                uint256 cellSeed = seed ^ (cells[i].x * 37 + cells[i].y * 13);
+                
+                if (_random(cellSeed) % 100 < 70) {
+                    // Diagonal: top-left to bottom-right
+                    result = string.concat(
+                        result,
+                        svg.line(
+                            string.concat(
+                                svg.prop("x1", LibString.toString(cells[i].x)),
+                                svg.prop("y1", LibString.toString(cells[i].y)),
+                                svg.prop("x2", LibString.toString(cells[i].x + cells[i].width)),
+                                svg.prop("y2", LibString.toString(cells[i].y + cells[i].height)),
+                                svg.prop("stroke", WHITE),
+                                svg.prop("stroke-width", LibString.toString(strokeWidth)),
+                                svg.prop("stroke-opacity", "0.6")
+                            )
+                        )
+                    );
+                }
+                
+                if (_random(cellSeed + 1) % 100 < 70) {
+                    // Diagonal: top-right to bottom-left
+                    result = string.concat(
+                        result,
+                        svg.line(
+                            string.concat(
+                                svg.prop("x1", LibString.toString(cells[i].x + cells[i].width)),
+                                svg.prop("y1", LibString.toString(cells[i].y)),
+                                svg.prop("x2", LibString.toString(cells[i].x)),
+                                svg.prop("y2", LibString.toString(cells[i].y + cells[i].height)),
+                                svg.prop("stroke", WHITE),
+                                svg.prop("stroke-width", LibString.toString(strokeWidth)),
+                                svg.prop("stroke-opacity", "0.6")
+                            )
+                        )
+                    );
+                }
+            }
+        }
+        
+        // Add a border
+        result = string.concat(
+            result,
+            svg.rect(
+                string.concat(
+                    svg.prop("x", LibString.toString(boxX)),
+                    svg.prop("y", LibString.toString(boxY)),
+                    svg.prop("width", LibString.toString(boxWidth)),
+                    svg.prop("height", LibString.toString(boxHeight)),
+                    svg.prop("rx", "5"),
+                    svg.prop("fill", "none"),
+                    svg.prop("stroke", WHITE),
+                    svg.prop("stroke-width", LibString.toString(uint256(strokeWidth) * 15 / 10)), // ×1.5
+                    svg.prop("stroke-opacity", "0.9")
+                )
             )
         );
+        
+        return result;
     }
-
-    function _circles1(COLORS memory _colors) internal pure returns (string memory) {
-        return string.concat(
-            //large central circle | circle1
-            svg.circle(
+    
+    // Generate a 10 PRINT pattern (ttten style) with maze-like diagonal lines
+    function _ttenPattern(string memory color) private pure returns (string memory) {
+        string memory result = "";
+        
+        // Define the pattern box
+        uint256 boxX = 26;
+        uint256 boxY = 65;
+        uint256 boxWidth = 248;
+        uint256 boxHeight = 248;
+        
+        // Create background
+        result = string.concat(
+            result,
+            svg.rect(
                 string.concat(
-                    svg.prop("cx", "150"),
-                    svg.prop("cy", "189"),
-                    svg.prop("r", "78"),
-                    svg.prop("fill", _colorCode2Hex(_colors.circle1))
+                    svg.prop("x", LibString.toString(boxX)),
+                    svg.prop("y", LibString.toString(boxY)),
+                    svg.prop("width", LibString.toString(boxWidth)),
+                    svg.prop("height", LibString.toString(boxHeight)),
+                    svg.prop("rx", "5"),
+                    svg.prop("fill", color),
+                    svg.prop("fill-opacity", "0.15")
                 )
-            ),
-            //small right circle | circle2
-            svg.circle(
-                string.concat(
-                    svg.prop("cx", "228"),
-                    svg.prop("cy", "295"),
-                    svg.prop("r", "28"),
-                    svg.prop("fill", _colorCode2Hex(_colors.circle2))
-                )
-            ),
-            //small right half circle | circle3
-            svg.path(
-                "M228 267C220.574 267 213.452 269.95 208.201 275.201C202.95 280.452 200 287.574 200 295C200 302.426 202.95 309.548 208.201 314.799C213.452 320.05 220.574 323 228 323L228 267Z",
-                svg.prop("fill", _colorCode2Hex(_colors.circle3))
             )
         );
-    }
-
-    function _colors2(uint256 _variant) internal pure returns (COLORS memory) {
-        if (_variant == 0) {
-            return COLORS(
-                colorCode.BROWN, // rect1
-                colorCode.GOLDEN, // rect2
-                colorCode.BLUE, // rect3
-                colorCode.GREEN, // rect4
-                colorCode.CORAL, // rect5
-                colorCode.GOLDEN, // unused
-                colorCode.GOLDEN, // circle1
-                colorCode.CYAN, // circle2
-                colorCode.GREEN // circle3
-            );
-        } else if (_variant == 1) {
-            return COLORS(
-                colorCode.GREEN, // rect1
-                colorCode.BROWN, // rect2
-                colorCode.GOLDEN, // rect3
-                colorCode.BLUE, // rect4
-                colorCode.CYAN, // rect5
-                colorCode.GOLDEN, // unused
-                colorCode.GREEN, // circle1
-                colorCode.CORAL, // circle2
-                colorCode.BLUE // circle3
-            );
-        } else if (_variant == 2) {
-            return COLORS(
-                colorCode.BLUE, // rect1
-                colorCode.GOLDEN, // rect2
-                colorCode.GREEN, // rect3
-                colorCode.BLUE, // rect4
-                colorCode.CORAL, // rect5
-                colorCode.GOLDEN, // unused
-                colorCode.CYAN, // circle1
-                colorCode.BROWN, // circle2
-                colorCode.BROWN // circle3
-            );
-        } else {
-            return COLORS(
-                colorCode.GOLDEN, // rect1
-                colorCode.GREEN, // rect2
-                colorCode.BLUE, // rect3
-                colorCode.GOLDEN, // rect4
-                colorCode.BROWN, // rect5
-                colorCode.GOLDEN, // unused
-                colorCode.BROWN, // circle1
-                colorCode.CYAN, // circle2
-                colorCode.CORAL // circle3
+        
+        // Add clipping path to contain pattern within bounds
+        string memory clipPathId = "ttenClip";
+        result = string.concat(
+            result,
+            svg.clipPath(
+                string.concat(
+                    svg.prop("id", clipPathId)
+                ),
+            svg.rect(
+                string.concat(
+                    svg.prop("x", LibString.toString(boxX)),
+                    svg.prop("y", LibString.toString(boxY)),
+                    svg.prop("width", LibString.toString(boxWidth)),
+                    svg.prop("height", LibString.toString(boxHeight)),
+                        svg.prop("rx", "5")
+                    )
+                )
+            )
+        );
+        
+        // Start a group with clip path
+        result = string.concat(
+            result,
+            "<g ",
+            svg.prop("clip-path", string.concat("url(#", clipPathId, ")")),
+            ">"
+        );
+        
+        // 10 PRINT pattern parameters
+        uint256 gridSize = 20; // Size of each cell
+        uint8 strokeWidth = 12; // 1.2px * 10 (for fixed-point math)
+        
+        // Generate the maze-like pattern
+        uint256 seed = 54321;
+        
+        for (uint256 y = 0; y < boxHeight; y += gridSize) {
+            for (uint256 x = 0; x < boxWidth; x += gridSize) {
+                // Deterministically choose diagonal based on position and seed
+                uint256 cellSeed = seed ^ (x * 31 + y * 17);
+                bool isTopLeftToBottomRight = _random(cellSeed) % 100 < 50;
+                
+                if (isTopLeftToBottomRight) {
+                    // Diagonal from top-left to bottom-right (↘)
+            result = string.concat(
+                result,
+                        svg.line(
+                    string.concat(
+                                svg.prop("x1", LibString.toString(boxX + x)),
+                                svg.prop("y1", LibString.toString(boxY + y)),
+                                svg.prop("x2", LibString.toString(boxX + x + gridSize)),
+                                svg.prop("y2", LibString.toString(boxY + y + gridSize)),
+                                svg.prop("stroke", WHITE),
+                                svg.prop("stroke-width", LibString.toString(strokeWidth / 10)), // Convert to decimal
+                                svg.prop("stroke-opacity", "0.9")
+                            )
+                        )
+                    );
+                } else {
+                    // Diagonal from top-right to bottom-left (↙)
+            result = string.concat(
+                result,
+                svg.line(
+                    string.concat(
+                                svg.prop("x1", LibString.toString(boxX + x + gridSize)),
+                                svg.prop("y1", LibString.toString(boxY + y)),
+                                svg.prop("x2", LibString.toString(boxX + x)),
+                                svg.prop("y2", LibString.toString(boxY + y + gridSize)),
+                                svg.prop("stroke", WHITE),
+                                svg.prop("stroke-width", LibString.toString(strokeWidth / 10)), // Convert to decimal
+                                svg.prop("stroke-opacity", "0.9")
+                    )
+                )
             );
         }
-    }
-
-    function _img2(uint256 _variant) internal pure returns (string memory) {
-        COLORS memory colors = _colors2(_variant);
-        return string.concat(_rects2(colors), _circles2(colors));
-    }
-
-    function _rects2(COLORS memory _colors) internal pure returns (string memory) {
-        return string.concat(
-            //background
+            }
+        }
+        
+        // Close the clipped group
+        result = string.concat(result, "</g>");
+        
+        // Add border
+        result = string.concat(
+            result,
             svg.rect(
                 string.concat(
-                    svg.prop("x", "16"),
-                    svg.prop("y", "55"),
-                    svg.prop("width", "268"),
-                    svg.prop("height", "268"),
-                    svg.prop("fill", DARK_BLUE)
-                )
-            ),
-            // large upper right rect | rect1
-            svg.rect(
-                string.concat(
-                    svg.prop("x", "128"),
-                    svg.prop("y", "55"),
-                    svg.prop("width", "156"),
-                    svg.prop("height", "156"),
-                    svg.prop("fill", _colorCode2Hex(_colors.rect1))
-                )
-            ),
-            // large central left rect | rect2
-            svg.rect(
-                string.concat(
-                    svg.prop("x", "16"),
-                    svg.prop("y", "111"),
-                    svg.prop("width", "134"),
-                    svg.prop("height", "100"),
-                    svg.prop("fill", _colorCode2Hex(_colors.rect2))
-                )
-            ),
-            // large lower left rect | rect3
-            svg.rect(
-                string.concat(
-                    svg.prop("x", "16"),
-                    svg.prop("y", "211"),
-                    svg.prop("width", "212"),
-                    svg.prop("height", "56"),
-                    svg.prop("fill", _colorCode2Hex(_colors.rect3))
-                )
-            ),
-            // small lower central rect | rect4
-            svg.rect(
-                string.concat(
-                    svg.prop("x", "72"),
-                    svg.prop("y", "267"),
-                    svg.prop("width", "78"),
-                    svg.prop("height", "56"),
-                    svg.prop("fill", _colorCode2Hex(_colors.rect4))
-                )
-            ),
-            // small lower right rect | rect5
-            svg.rect(
-                string.concat(
-                    svg.prop("x", "150"),
-                    svg.prop("y", "267"),
-                    svg.prop("width", "134"),
-                    svg.prop("height", "56"),
-                    svg.prop("fill", _colorCode2Hex(_colors.rect5))
+                    svg.prop("x", LibString.toString(boxX)),
+                    svg.prop("y", LibString.toString(boxY)),
+                    svg.prop("width", LibString.toString(boxWidth)),
+                    svg.prop("height", LibString.toString(boxHeight)),
+                    svg.prop("rx", "5"),
+                    svg.prop("fill", "none"),
+                    svg.prop("stroke", WHITE),
+                    svg.prop("stroke-width", LibString.toString(strokeWidth * 15 / 100)), // ×1.5
+                    svg.prop("stroke-opacity", "0.9")
                 )
             )
         );
+        
+        return result;
     }
-
-    function _circles2(COLORS memory _colors) internal pure returns (string memory) {
-        return string.concat(
-            //lower left circle | circle1
-            svg.circle(
+    
+    // Generate a gggyrate-inspired concentric hexagon pattern for Liquidated status
+    function _gyratePattern(string memory color) private pure returns (string memory) {
+        string memory result = "";
+        
+        // Define the pattern box
+        uint256 boxX = 26;
+        uint256 boxY = 65;
+        uint256 boxWidth = 248;
+        uint256 boxHeight = 248;
+        
+        // Calculate center and max size
+        uint256 centerX = boxX + boxWidth / 2;
+        uint256 centerY = boxY + boxHeight / 2;
+        
+        // Calculate max radius to ensure hexagons reach corners
+        // Using Pythagorean theorem to get diagonal length, then scale to ensure coverage
+        uint256 diagonal = _sqrt((boxWidth * boxWidth / 4) + (boxHeight * boxHeight / 4));
+        uint256 maxRadius = (diagonal * 115) / 100; // Multiply by 1.15 to ensure full coverage
+        
+        // Create background
+        result = string.concat(
+            result,
+            svg.rect(
                 string.concat(
-                    svg.prop("cx", "44"),
-                    svg.prop("cy", "295"),
-                    svg.prop("r", "28"),
-                    svg.prop("fill", _colorCode2Hex(_colors.circle1))
+                    svg.prop("x", LibString.toString(boxX)),
+                    svg.prop("y", LibString.toString(boxY)),
+                    svg.prop("width", LibString.toString(boxWidth)),
+                    svg.prop("height", LibString.toString(boxHeight)),
+                    svg.prop("rx", "5"),
+                    svg.prop("fill", color),
+                    svg.prop("fill-opacity", "0.15")
                 )
-            ),
-            //upper left half circle | circle2
-            svg.path(
-                "M16 55C16 62.4 17.4 69.6 20.3 76.4C23.1 83.2 27.2 89.4 32.4 94.6C37.6 99.8 43.8 103.9 50.6 106.7C57.4 109.6 64.6 111 72 111C79.4 111 86.6 109.6 93.4 106.7C100.2 103.9 106.4 99.8 111.6 94.6C116.8 89.4 120.9 83.2 123.7 76.4C126.6 69.6 128 62.4 128 55L16 55Z",
-                svg.prop("fill", _colorCode2Hex(_colors.circle2))
-            ),
-            //central right half circle | circle3
-            svg.path(
-                "M284 211C284 190.3 275.8 170.5 261.2 155.8C246.5 141.2 226.7 133 206 133C185.3 133 165.5 141.2 150.9 155.86C136.2 170.5 128 190.3 128 211L284 211Z",
-                svg.prop("fill", _colorCode2Hex(_colors.circle3))
             )
         );
-    }
-
-    function _colors3(uint256 _variant) internal pure returns (COLORS memory) {
-        if (_variant == 0) {
-            return COLORS(
-                colorCode.BLUE, // rect1
-                colorCode.CORAL, // rect2
-                colorCode.BLUE, // rect3
-                colorCode.GREEN, // rect4
-                colorCode.GOLDEN, // unused
-                colorCode.GOLDEN, // unused
-                colorCode.GOLDEN, // circle1
-                colorCode.CYAN, // circle2
-                colorCode.GOLDEN // circle3
-            );
-        } else if (_variant == 1) {
-            return COLORS(
-                colorCode.CORAL, // rect1
-                colorCode.GREEN, // rect2
-                colorCode.BROWN, // rect3
-                colorCode.GOLDEN, // rect4
-                colorCode.GOLDEN, // unused
-                colorCode.GOLDEN, // unused
-                colorCode.BLUE, // circle1
-                colorCode.BLUE, // circle2
-                colorCode.CYAN // circle3
-            );
-        } else if (_variant == 2) {
-            return COLORS(
-                colorCode.CORAL, // rect1
-                colorCode.CYAN, // rect2
-                colorCode.CORAL, // rect3
-                colorCode.GOLDEN, // rect4
-                colorCode.GOLDEN, // unused
-                colorCode.GOLDEN, // unused
-                colorCode.GREEN, // circle1
-                colorCode.BLUE, // circle2
-                colorCode.GREEN // circle3
-            );
-        } else {
-            return COLORS(
-                colorCode.GOLDEN, // rect1
-                colorCode.CORAL, // rect2
-                colorCode.GREEN, // rect3
-                colorCode.BLUE, // rect4
-                colorCode.GOLDEN, // unused
-                colorCode.GOLDEN, // unused
-                colorCode.BROWN, // circle1
-                colorCode.BLUE, // circle2
-                colorCode.GREEN // circle3
+        
+        // Add clipping path to contain pattern within bounds
+        string memory clipPathId = "gyrateClip";
+        result = string.concat(
+            result,
+            svg.clipPath(
+                string.concat(
+                    svg.prop("id", clipPathId)
+                ),
+            svg.rect(
+                string.concat(
+                    svg.prop("x", LibString.toString(boxX)),
+                    svg.prop("y", LibString.toString(boxY)),
+                    svg.prop("width", LibString.toString(boxWidth)),
+                    svg.prop("height", LibString.toString(boxHeight)),
+                        svg.prop("rx", "5")
+                    )
+                )
+            )
+        );
+        
+        // Start a group with clip path
+            result = string.concat(
+                result,
+            "<g ",
+            svg.prop("clip-path", string.concat("url(#", clipPathId, ")")),
+            ">"
+        );
+        
+        // Parameters for concentric hexagons
+        uint256 numShapes = 25;
+        uint256 fadeOpacityStart = 90; // 0.9 * 100 for fixed-point
+        uint256 fadeOpacityEnd = 30;   // 0.3 * 100
+        
+        // Generate concentric hexagons
+        for (uint256 i = numShapes; i > 0; i--) {
+            uint256 size = (i * maxRadius) / numShapes;
+            uint256 opacity = fadeOpacityStart - ((fadeOpacityStart - fadeOpacityEnd) * (numShapes - i)) / numShapes;
+            
+            // Generate hexagon points
+            string memory points = _generateHexagonPoints(centerX, centerY, size);
+            
+            // Add the hexagon
+            result = string.concat(
+                result,
+                svg.polygon(
+                    string.concat(
+                        svg.prop("points", points),
+                        svg.prop("fill", "none"),
+                        svg.prop("stroke", WHITE),
+                        svg.prop("stroke-width", "1"),
+                        svg.prop("stroke-opacity", LibString.toString(opacity / 100)) // Convert back to decimal
+                    )
+                )
             );
         }
-    }
-
-    function _img3(uint256 _variant) internal pure returns (string memory) {
-        COLORS memory colors = _colors3(_variant);
-        return string.concat(_rects3(colors), _circles3(colors));
-    }
-
-    function _rects3(COLORS memory _colors) internal pure returns (string memory) {
-        return string.concat(
-            //background
+        
+        // Close the clipped group
+        result = string.concat(result, "</g>");
+        
+        // Add border
+        result = string.concat(
+            result,
             svg.rect(
                 string.concat(
-                    svg.prop("x", "16"),
-                    svg.prop("y", "55"),
-                    svg.prop("width", "268"),
-                    svg.prop("height", "268"),
-                    svg.prop("fill", DARK_BLUE)
-                )
-            ),
-            // lower left rect | rect1
-            svg.rect(
-                string.concat(
-                    svg.prop("x", "16"),
-                    svg.prop("y", "205"),
-                    svg.prop("width", "75"),
-                    svg.prop("height", "118"),
-                    svg.prop("fill", _colorCode2Hex(_colors.rect1))
-                )
-            ),
-            // central rect | rect2
-            svg.rect(
-                string.concat(
-                    svg.prop("x", "91"),
-                    svg.prop("y", "205"),
-                    svg.prop("width", "136"),
-                    svg.prop("height", "59"),
-                    svg.prop("fill", _colorCode2Hex(_colors.rect2))
-                )
-            ),
-            // central right rect | rect3
-            svg.rect(
-                string.concat(
-                    svg.prop("x", "166"),
-                    svg.prop("y", "180"),
-                    svg.prop("width", "118"),
-                    svg.prop("height", "25"),
-                    svg.prop("fill", _colorCode2Hex(_colors.rect3))
-                )
-            ),
-            // upper right rect | rect4
-            svg.rect(
-                string.concat(
-                    svg.prop("x", "166"),
-                    svg.prop("y", "55"),
-                    svg.prop("width", "118"),
-                    svg.prop("height", "126"),
-                    svg.prop("fill", _colorCode2Hex(_colors.rect4))
+                    svg.prop("x", LibString.toString(boxX)),
+                    svg.prop("y", LibString.toString(boxY)),
+                    svg.prop("width", LibString.toString(boxWidth)),
+                    svg.prop("height", LibString.toString(boxHeight)),
+                    svg.prop("rx", "5"),
+                    svg.prop("fill", "none"),
+                    svg.prop("stroke", WHITE),
+                    svg.prop("stroke-width", "1.5"),
+                    svg.prop("stroke-opacity", "0.9")
                 )
             )
         );
+        
+        return result;
+    }
+    
+    // Helper function to calculate square root
+    function _sqrt(uint256 x) private pure returns (uint256) {
+        if (x == 0) return 0;
+        uint256 result = 1;
+        uint256 a = x;
+        
+        // Newton's method
+        while (result + 1 < a / result) {
+            result = (result + a / result) / 2;
+        }
+        return result;
+    }
+    
+    // Helper function to generate hexagon points
+    function _generateHexagonPoints(uint256 centerX, uint256 centerY, uint256 size) private pure returns (string memory) {
+        string memory points = "";
+        
+        for (uint256 i = 0; i < 6; i++) {
+            // Calculate angle in fixed-point math (100x for precision)
+            // (PI/3) * i - PI/6
+            uint256 angle = ((i * 10472) - 5236); // 10472 = PI/3 * 10000, 5236 = PI/6 * 10000
+            
+            // Calculate x and y using sine and cosine approximations
+            int256 x = int256(centerX) + _fixedCos(angle) * int256(size) / 10000;
+            int256 y = int256(centerY) + _fixedSin(angle) * int256(size) / 10000;
+            
+            // Append the point to the points string
+            if (i > 0) {
+                points = string.concat(points, " ");
+            }
+            
+            points = string.concat(
+                points, 
+                LibString.toString(uint256(x)), 
+                ",", 
+                LibString.toString(uint256(y))
+            );
+        }
+        
+        return points;
+    }
+    
+    // Fixed-point cosine approximation (input: angle in 10000ths of radians, output: cos(angle) * 10000)
+    function _fixedCos(uint256 angle) private pure returns (int256) {
+        // Normalize angle to [0, 2π)
+        angle = angle % 62832; // 2π * 10000
+        
+        // Convert to degrees for simpler lookup
+        uint256 deg = (angle * 180) / 31416; // * (180/π)
+        
+        // Simple lookup table for common angles
+        if (deg == 0 || deg == 360) return 10000;      // cos(0°) = 1
+        if (deg == 30) return 8660;                    // cos(30°) ≈ 0.866
+        if (deg == 60) return 5000;                    // cos(60°) = 0.5
+        if (deg == 90) return 0;                       // cos(90°) = 0
+        if (deg == 120) return -5000;                  // cos(120°) = -0.5
+        if (deg == 150) return -8660;                  // cos(150°) ≈ -0.866
+        if (deg == 180) return -10000;                 // cos(180°) = -1
+        if (deg == 210) return -8660;                  // cos(210°) ≈ -0.866
+        if (deg == 240) return -5000;                  // cos(240°) = -0.5
+        if (deg == 270) return 0;                      // cos(270°) = 0
+        if (deg == 300) return 5000;                   // cos(300°) = 0.5
+        if (deg == 330) return 8660;                   // cos(330°) ≈ 0.866
+        
+        // Fall back to simpler approximations for other angles
+        if (deg < 90) return int256(10000 - ((deg * deg) / 81));    // Quadratic approximation
+        if (deg < 180) return -int256(10000 - (((180 - deg) * (180 - deg)) / 81));
+        if (deg < 270) return -int256(10000 - (((deg - 180) * (deg - 180)) / 81));
+        return int256(10000 - (((360 - deg) * (360 - deg)) / 81));
+    }
+    
+    // Fixed-point sine approximation (input: angle in 10000ths of radians, output: sin(angle) * 10000)
+    function _fixedSin(uint256 angle) private pure returns (int256) {
+        // sin(x) = cos(x - π/2)
+        return _fixedCos(angle + 15708); // + π/2 * 10000
     }
 
-    function _circles3(COLORS memory _colors) internal pure returns (string memory) {
-        return string.concat(
-            //upper left circle | circle1
-            svg.circle(
+    // Generate a simplified reflection pattern with concentric circles for Active status
+    function _reflectionPattern(string memory color) private pure returns (string memory) {
+        string memory result = "";
+        
+        // Define the pattern box
+        uint256 boxX = 26;
+        uint256 boxY = 65;
+        uint256 boxWidth = 248;
+        uint256 boxHeight = 248;
+        
+        // Calculate center point
+        uint256 centerX = boxX + boxWidth / 2;
+        uint256 centerY = boxY + boxHeight / 2;
+        
+        // Create background
+        result = string.concat(
+            result,
+            svg.rect(
                 string.concat(
-                    svg.prop("cx", "91"),
-                    svg.prop("cy", "130"),
-                    svg.prop("r", "75"),
-                    svg.prop("fill", _colorCode2Hex(_colors.circle1))
+                    svg.prop("x", LibString.toString(boxX)),
+                    svg.prop("y", LibString.toString(boxY)),
+                    svg.prop("width", LibString.toString(boxWidth)),
+                    svg.prop("height", LibString.toString(boxHeight)),
+                    svg.prop("rx", "5"),
+                    svg.prop("fill", color),
+                    svg.prop("fill-opacity", "0.15")
                 )
-            ),
-            //upper right half circle | circle2
-            svg.path(
-                "M284 264 166 264 166 263C166 232 193 206 225 205C258 206 284 232 284 264C284 264 284 264 284 264Z",
-                svg.prop("fill", _colorCode2Hex(_colors.circle2))
-            ),
-            //lower right half circle | circle3
-            svg.path(
-                "M284 323 166 323 166 323C166 290 193 265 225 264C258 265 284 290 284 323C284 323 284 323 284 323Z",
-                svg.prop("fill", _colorCode2Hex(_colors.circle3))
             )
         );
+        
+        // Add clipping path to contain pattern within bounds
+        string memory clipPathId = "reflectionClip";
+        result = string.concat(
+            result,
+            svg.clipPath(
+                string.concat(
+                    svg.prop("id", clipPathId)
+                ),
+                svg.rect(
+                    string.concat(
+                        svg.prop("x", LibString.toString(boxX)),
+                        svg.prop("y", LibString.toString(boxY)),
+                        svg.prop("width", LibString.toString(boxWidth)),
+                        svg.prop("height", LibString.toString(boxHeight)),
+                        svg.prop("rx", "5")
+                    )
+                )
+            )
+        );
+        
+        // Start a group with clip path
+        result = string.concat(
+            result,
+            "<g ",
+            svg.prop("clip-path", string.concat("url(#", clipPathId, ")")),
+            ">"
+        );
+        
+        // Simplified concentric circles pattern
+        uint256 circleCount = 24;
+        uint256 maxRadius = boxWidth * 70 / 100;
+        
+        // Draw concentric circles from center
+        for (uint256 i = 0; i < circleCount; i++) {
+            uint256 radius = (i + 1) * (maxRadius / circleCount);
+            
+            // Add the circle
+            result = string.concat(
+                result,
+                svg.circle(
+                    string.concat(
+                        svg.prop("cx", LibString.toString(centerX)),
+                        svg.prop("cy", LibString.toString(centerY)),
+                        svg.prop("r", LibString.toString(radius)),
+                        svg.prop("fill", "none"),
+                        svg.prop("stroke", WHITE),
+                        svg.prop("stroke-width", "0.5"),
+                        svg.prop("stroke-opacity", "0.7")
+                    )
+                )
+            );
+        }
+        
+        // Close the clipped group
+        result = string.concat(result, "</g>");
+        
+        // Add border
+        result = string.concat(
+            result,
+            svg.rect(
+                string.concat(
+                    svg.prop("x", LibString.toString(boxX)),
+                    svg.prop("y", LibString.toString(boxY)),
+                    svg.prop("width", LibString.toString(boxWidth)),
+                    svg.prop("height", LibString.toString(boxHeight)),
+                    svg.prop("rx", "5"),
+                    svg.prop("fill", "none"),
+                    svg.prop("stroke", WHITE),
+                    svg.prop("stroke-width", "1.5")
+                )
+            )
+        );
+        
+        return result;
     }
 }

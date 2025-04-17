@@ -18,7 +18,7 @@ interface IMetadataNFT {
         uint256 _tokenId;
         address _owner;
         address _collToken;
-        address _boldToken;
+        address _usadToken;
         uint256 _collAmount;
         uint256 _debtAmount;
         uint256 _interestRate;
@@ -62,11 +62,16 @@ contract MetadataNFT is IMetadataNFT, Ownable, UUPSUpgradeable {
     }
 
     function renderSVGImage(TroveData memory _troveData) internal view returns (string memory) {
+        // Get status text and color
+        (string memory statusText, string memory statusColor) = _status2StrAndColor(_troveData._status);
+        
         return svg._svg(
             baseSVG._svgProps(),
             string.concat(
+                baseSVG._backgroundRect(statusColor),
+                baseSVG._styles(assetReader),
+                bauhaus._bauhaus(IERC20Metadata(_troveData._collToken).symbol(), uint256(_troveData._status)),
                 baseSVG._baseElements(assetReader),
-                bauhaus._bauhaus(IERC20Metadata(_troveData._collToken).symbol(), _troveData._tokenId),
                 dynamicTextComponents(_troveData)
             )
         );
@@ -80,7 +85,7 @@ contract MetadataNFT is IMetadataNFT, Ownable, UUPSUpgradeable {
             '"}, {"trait_type": "Collateral Amount", "value": "',
             LibString.toString(_troveData._collAmount),
             '"}, {"trait_type": "Debt Token", "value": "',
-            LibString.toHexString(_troveData._boldToken),
+            LibString.toHexString(_troveData._usadToken),
             '"}, {"trait_type": "Debt Amount", "value": "',
             LibString.toString(_troveData._debtAmount),
             '"}, {"trait_type": "Interest Rate", "value": "',
@@ -95,20 +100,28 @@ contract MetadataNFT is IMetadataNFT, Ownable, UUPSUpgradeable {
         string memory id = LibString.toHexString(_troveData._tokenId);
         id = string.concat(LibString.slice(id, 0, 6), "...", LibString.slice(id, 38, 42));
 
+        // Get status text and color
+        (string memory statusText, string memory statusColor) = _status2StrAndColor(_troveData._status);
+
         return string.concat(
             baseSVG._formattedIdEl(id),
             baseSVG._formattedAddressEl(_troveData._owner),
             baseSVG._collLogo(IERC20Metadata(_troveData._collToken).symbol(), assetReader),
-            baseSVG._statusEl(_status2Str(_troveData._status)),
+            baseSVG._statusEl(statusText, statusColor),
             baseSVG._dynamicTextEls(_troveData._debtAmount, _troveData._collAmount, _troveData._interestRate)
         );
     }
 
+    function _status2StrAndColor(ITroveManager.Status status) internal pure returns (string memory, string memory) {
+        if (status == ITroveManager.Status.active) return ("Active", baseSVG.STATUS_GREEN);
+        if (status == ITroveManager.Status.closedByOwner) return ("Closed", baseSVG.STATUS_BLUE);
+        if (status == ITroveManager.Status.closedByLiquidation) return ("Liquidated", baseSVG.STATUS_RED);
+        if (status == ITroveManager.Status.zombie) return ("Below Min Debt", baseSVG.STATUS_ORANGE);
+        return ("", baseSVG.STOIC_WHITE);
+    }
+
     function _status2Str(ITroveManager.Status status) internal pure returns (string memory) {
-        if (status == ITroveManager.Status.active) return "Active";
-        if (status == ITroveManager.Status.closedByOwner) return "Closed";
-        if (status == ITroveManager.Status.closedByLiquidation) return "Liquidated";
-        if (status == ITroveManager.Status.zombie) return "Below Min Debt";
-        return "";
+        (string memory statusText,) = _status2StrAndColor(status);
+        return statusText;
     }
 }

@@ -4,13 +4,13 @@ pragma solidity 0.8.24;
 import "./SVG.sol";
 
 library bauhaus {
-    string constant GOLDEN = "#F5D93A";
-    string constant CORAL = "#FB7C59";
-    string constant GREEN = "#63D77D";
-    string constant CYAN = "#95CBF3";
-    string constant BLUE = "#405AE5";
-    string constant DARK_BLUE = "#121B44";
-    string constant BROWN = "#D99664";
+    string constant GOLDEN = "#F8E9D5";
+    string constant CORAL = "#DBAC75";
+    string constant GREEN = "#ABD2FF";
+    string constant CYAN = "#499CFD";
+    string constant BLUE = "#036EEE";
+    string constant DARK_BLUE = "#033674";
+    string constant BROWN = "#E6C7A0";
 
     enum colorCode {
         GOLDEN,
@@ -26,12 +26,18 @@ library bauhaus {
         bytes32 collSig = keccak256(bytes(_collName));
         uint256 variant = _troveId % 4;
 
-        if (collSig == keccak256("WETH")) {
+        // BTC-related collateral types use pattern 1
+        if (collSig == keccak256("wBTC") || collSig == keccak256("tBTC") || collSig == keccak256("cbBTC")) {
             return _img1(variant);
-        } else if (collSig == keccak256("wstETH")) {
+        }
+        // USD-related collateral types use pattern 2
+        else if (collSig == keccak256("sUSDE") || collSig == keccak256("sUSDS") || 
+                 collSig == keccak256("scrvUSD") || collSig == keccak256("sfrxUSD") || 
+                 collSig == keccak256("sDAI")) {
             return _img2(variant);
-        } else {
-            // assume rETH
+        }
+        // Default for any other collateral types
+        else {
             return _img3(variant);
         }
     }

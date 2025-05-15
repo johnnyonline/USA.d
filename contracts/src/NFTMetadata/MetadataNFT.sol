@@ -61,7 +61,7 @@ contract MetadataNFT is IMetadataNFT, Ownable, UUPSUpgradeable {
         return json.formattedMetadata(name, description, renderSVGImage(_troveData), attr);
     }
 
-    function renderSVGImage(TroveData memory _troveData) internal view returns (string memory) {
+    function renderSVGImage(TroveData memory _troveData) public view returns (string memory) {
         return svg._svg(
             baseSVG._svgProps(),
             string.concat(
